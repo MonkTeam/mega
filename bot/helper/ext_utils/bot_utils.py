@@ -13,13 +13,13 @@ URL_REGEX = r"(?:(?:https?|ftp):\/\/)?[\w/\-?=%.]+\.[\w/\-?=%.]+"
 
 
 class MirrorStatus:
-    STATUS_UPLOADING = "Uploading"
-    STATUS_DOWNLOADING = "Downloading"
-    STATUS_WAITING = "Queued"
-    STATUS_FAILED = "Failed. Cleaning download"
-    STATUS_CANCELLED = "Cancelled"
-    STATUS_ARCHIVING = "Archiving"
-    STATUS_EXTRACTING = "Extracting"
+    STATUS_UPLOADING = "Uploading...⬆️"
+    STATUS_DOWNLOADING = "Downloading...⬇️"
+    STATUS_WAITING = "Queued...📝"
+    STATUS_FAILED = "Failed 🚫. Cleaning download"
+    STATUS_CANCELLED = "Cancelled.❎"
+    STATUS_ARCHIVING = "Archiving...🔐"
+    STATUS_EXTRACTING = "Extracting...📂"
 
 
 PROGRESS_MAX_SIZE = 100 // 8
@@ -35,17 +35,17 @@ class setInterval:
         self.stopEvent = threading.Event()
         thread = threading.Thread(target=self.__setInterval)
         thread.start()
-
+ 
     def __setInterval(self):
         nextTime = time.time() + self.interval
         while not self.stopEvent.wait(nextTime - time.time()):
             nextTime += self.interval
             self.action()
-
+ 
     def cancel(self):
         self.stopEvent.set()
-
-
+ 
+ 
 def get_readable_file_size(size_in_bytes) -> str:
     if size_in_bytes is None:
         return '0B'
@@ -57,8 +57,8 @@ def get_readable_file_size(size_in_bytes) -> str:
         return f'{round(size_in_bytes, 2)}{SIZE_UNITS[index]}'
     except IndexError:
         return 'File too large'
-
-
+ 
+ 
 def getDownloadByGid(gid):
     with download_dict_lock:
         for dl in download_dict.values():
@@ -68,8 +68,8 @@ def getDownloadByGid(gid):
                 if dl.gid() == gid:
                     return dl
     return None
-
-
+ 
+ 
 def get_progress_bar_string(status):
     completed = status.processed_bytes() / 8
     total = status.size_raw() / 8
@@ -80,33 +80,36 @@ def get_progress_bar_string(status):
     p = min(max(p, 0), 100)
     cFull = p // 8
     cPart = p % 8 - 1
-    p_str = '█' * cFull
+    p_str = '▓' * cFull
     if cPart >= 0:
         p_str += PROGRESS_INCOMPLETE[cPart]
-    p_str += ' ' * (PROGRESS_MAX_SIZE - cFull)
+    p_str += '░' * (PROGRESS_MAX_SIZE - cFull)
     p_str = f"[{p_str}]"
     return p_str
-
-
+ 
+ 
 def get_readable_message():
     with download_dict_lock:
-        msg = ""
+        msg = "<b>✥════ @AiTorrent_Ware ════✥</b>"
         for download in list(download_dict.values()):
-            msg += f"<i>{download.name()}</i> - "
-            msg += download.status()
+            msg += f"\n📁 𝗡𝗮𝗺𝗲: <code>{download.name()}</code>"
+            msg += f"\n {download.status()}"
             if download.status() != MirrorStatus.STATUS_ARCHIVING and download.status() != MirrorStatus.STATUS_EXTRACTING:
-                msg += f"\n<code>{get_progress_bar_string(download)} {download.progress()}</code> of " \
-                       f"{download.size()}" \
-                       f" at {download.speed()}, ETA: {download.eta()} "
+                msg += f"\n{get_progress_bar_string(download)} {download.progress()}" \
+                       f"\n<b>○ Done ✓:</b> {get_readable_file_size(download.processed_bytes())} of {download.size()}" \
+                       f"\n<b>○ Speed :</b> {download.speed()}, \n<b>○ ETA:</b> {download.eta()} "
+                # if hasattr(download, 'is_torrent'):
+                try:
+                    msg += f"\n<b>○ Seeders:</b> {download.aria_download().num_seeders}" \
+                        f" & <b>○ Peers :</b> {download.aria_download().connections}"
+                except:
+                    pass
             if download.status() == MirrorStatus.STATUS_DOWNLOADING:
-                if hasattr(download, 'is_torrent'):
-                    msg += f"| P: {download.aria_download().connections} " \
-                           f"| S: {download.aria_download().num_seeders}"
-                msg += f"\nGID: <code>{download.gid()}</code>"
+                msg += f"\n<b>○ ⛔</b>: <code> /cancel1 {download.gid()}</code>"
             msg += "\n\n"
         return msg
-
-
+ 
+ 
 def get_readable_time(seconds: int) -> str:
     result = ''
     (days, remainder) = divmod(seconds, 86400)
@@ -124,29 +127,43 @@ def get_readable_time(seconds: int) -> str:
     seconds = int(seconds)
     result += f'{seconds}s'
     return result
-
-
+ 
+ 
 def is_url(url: str):
     url = re.findall(URL_REGEX, url)
     if url:
         return True
     return False
-
-
+ 
+ 
 def is_magnet(url: str):
     magnet = re.findall(MAGNET_REGEX, url)
     if magnet:
         return True
     return False
-
+ 
+ 
+def is_mega_link(url: str):
+    return "mega.nz" in url
+ 
+def get_mega_link_type(url: str):
+    if "folder" in url:
+        return "folder"
+    elif "file" in url:
+        return "file"
+    elif "/#F!" in url:
+        return "folder"
+    return "file"
+ 
+ 
 def new_thread(fn):
     """To use as decorator to make a function call threaded.
     Needs import
     from threading import Thread"""
-
+ 
     def wrapper(*args, **kwargs):
         thread = threading.Thread(target=fn, args=args, kwargs=kwargs)
         thread.start()
         return thread
-
+ 
     return wrapper
