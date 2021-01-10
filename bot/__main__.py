@@ -32,7 +32,7 @@ def stats(update, context):
             f'<b>• Total disk space:</b> {total}\n' \
             f'<b>• Used:</b> {used}\n' \
             f'<b>• Free:</b> {free}\n\n' \
-            f'<b><u>📊Data Usage📊</u></b>\n'\
+            f'<b><u>📊 Data Usage 📊</u></b>\n'\
             f'<b>• Upload:</b> {sent}\n'\
             f'<b>• Down:</b> {recv}\n\n'\
             f'<b>• CPU:</b> {cpuUsage}%\n' \
@@ -46,7 +46,7 @@ def start(update, context):
     start_string = f'''
 This is a bot which can mirror all your links to Google drive!
 
-👲 Moded By: @MaxxRiderz
+👲 Moded By: <b>@Plethro_Admin, @MonkAno</b>
 
 Type /{BotCommands.HelpCommand} to get a list of available commands
 '''
